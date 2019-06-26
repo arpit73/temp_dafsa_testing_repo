@@ -193,6 +193,7 @@ The bytes in the generated array has the following meaning:
 """
 
 import sys
+import struct
 
 
 class InputError(Exception):
@@ -445,6 +446,15 @@ def words_to_cxx(words, preamble=None):
     return to_cxx(encode(dafsa), preamble)
 
 
+def words_to_bin(words):
+    """Generates bytes from a word list"""
+    dafsa = to_dafsa(words)
+    for fun in (reverse, join_suffixes, reverse, join_suffixes, join_labels):
+        dafsa = fun(dafsa)
+    data = encode(dafsa)
+    return struct.pack('%dB' % len(data), *data)
+
+
 def parse_gperf(infile):
     """Parses gperf file and extract strings and return code"""
     lines = [line.strip() for line in infile]
@@ -459,8 +469,7 @@ def parse_gperf(infile):
     lines = lines[begin:end]
     for line in lines:
         if line[-3:-1] != ', ':
-            raise InputError(
-                'Expected "domainname, <digit>", found "%s"' % line)
+            raise InputError('Expected "domainname, <digit>", found "%s"' % line)
         # Technically the DAFSA format could support return values in range [0-31],
         # but the values below are the only with a defined meaning.
         if line[-1] not in '0124':
